@@ -7,6 +7,11 @@ enable_testing()
 
 include_directories(${INFER_CPP_INCLUDE_DIRS})
 
+
+add_executable(mathutil_test mathutil_test.cpp)
+target_link_libraries(mathutil_test gtest_main infer-cpp)
+add_test(mathutil_test mathutil_test)
+
 add_executable(kmeans_test kmeans_test.cpp)
 target_link_libraries(kmeans_test gtest_main infer-cpp)
 add_test(kmeans_test kmeans_test)

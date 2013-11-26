@@ -7,6 +7,15 @@
 using namespace std;
 
 
+double log_gmm_pdf(double data, const vec &means, const vec &vars, const vec &weights)
+{
+    double prob = 0;
+    for (size_t k = 0; k < means.size(); ++k)
+        prob += weights(k) * norm_pdf(data, means(k), vars(k));
+    return log(prob);
+}
+
+
 vec generate_gmm(size_t N, const vec &mean, const vec &stddev, const vec &weights)
 {
     vec result(N);
@@ -19,7 +28,7 @@ vec generate_gmm(size_t N, const vec &mean, const vec &stddev, const vec &weight
         filled += size_k;
     }
     if (filled < N)
-        result.subvec(filled, N - 1) =  mean(K-1) + randn(N - filled) * stddev(K-1);
+        result.subvec(filled, N - 1) = mean(K-1) + randn(N - filled) * stddev(K-1);
     return result;
 }
 
@@ -28,13 +37,16 @@ size_t em_gmm(const vec &data, size_t K, size_t max_iters, vec &means, vec &vars
 {
     const size_t N = data.size();
 
+    // ad-hoc to have non-zero variances
+    const double MIN_VAR = 1e-6;
+
     means.resize(K);
     vars.resize(K);
     weights = ones(K) / K;
 
     // responsibilities
     mat resps = zeros(N, K);
-    vec resp_count = zeros(K);
+    vec resp_count = EPS * ones(K);
 
     // initialisation
     ivec assigns;
@@ -46,7 +58,7 @@ size_t em_gmm(const vec &data, size_t K, size_t max_iters, vec &means, vec &vars
         vars(k) += sqr(data(p) - means(k));
         ++resp_count(k);
     }
-    vars /= resp_count;
+    vars = MIN_VAR + vars / resp_count;
     weights = resp_count / N;
 
     size_t iters = 0;
@@ -67,16 +79,19 @@ size_t em_gmm(const vec &data, size_t K, size_t max_iters, vec &means, vec &vars
         // recomputing mixture parameters
         for (size_t k = 0; k < K; ++k)
         {
-            means(k) = dot(data, resps.col(k)) / resp_count(k);
-            vars(k) = dot(resps.col(k), square(data - means(k))) / resp_count(k);
+            if (resp_count(k) > EPS)
+            {
+                means(k) = dot(data, resps.col(k)) / resp_count(k);
+                vars(k) = MIN_VAR + dot(resps.col(k), square(data - means(k))) / resp_count(k);
+            }
             weights(k) = resp_count(k) / N;
         }
 
         // evaluating log-likelihood
         double curr_log_l = 0.0;
         for (size_t p = 0; p < N; ++p)
-            for (size_t k = 0; k < K; ++k)
-                curr_log_l += resps(p, k) * (log(weights(k)) + log(norm_pdf(data(p), means(k), weights(k))));
+            curr_log_l += log_gmm_pdf(data(p), means, vars, weights);
+
         if (fabs(curr_log_l - log_l) < EPS)
             break;
         log_l = curr_log_l;
@@ -86,10 +101,3 @@ size_t em_gmm(const vec &data, size_t K, size_t max_iters, vec &means, vec &vars
 }
 
 
-
-size_t em_gmm_vector(const mat &data, size_t num_comps, size_t max_iters, mat &mean, mat &vars, mat &weights)
-{
-    size_t iters = 0;
-
-    return iters;
-}

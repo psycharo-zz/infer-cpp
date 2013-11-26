@@ -7,32 +7,79 @@ using namespace std;
 
 #include "gmm.h"
 
+TEST(GMMTest, LogPDF)
+{
+    vec INPUT_MEANS = {-5,5,8};
+    vec INPUT_VARS = {0.2, 0.5, 0.7};
+    vec INPUT_WEIGHTS = {0.2, 0.5, 0.3};
+
+    // log pdf -10:1:10
+    const vec EXPECTED_LOG_PDF = {  -64.223657489421726,
+                                    -41.723657489421733,
+                                    -24.223657489421729,
+                                    -11.723657489421724,
+                                     -4.223657489421724,
+                                     -1.723657489421723,
+                                     -4.223657489421724,
+                                    -11.723657489421724,
+                                    -24.223657489416830,
+                                    -37.253994875045613,
+                                    -26.265512122972979,
+                                    -17.265512120643507,
+                                    -10.265512095548582,
+                                     -5.265511637070215,
+                                     -2.265497126189088,
+                                     -1.264693627810608,
+                                     -2.189323326616069,
+                                     -2.587673412824504,
+                                     -1.944330527754624,
+                                     -2.658859126520253,
+                                     -4.801716722227239};
+
+    for (int i = 0, data = -10; i < EXPECTED_LOG_PDF.size(); ++i, data += 1)
+        EXPECT_FLOAT_EQ(log_gmm_pdf(data, INPUT_MEANS, INPUT_VARS, INPUT_WEIGHTS), EXPECTED_LOG_PDF[i]);
+}
+
 TEST(GMMTest, EM1D)
 {
     // TODO: separate errors for variance and mean?
     const double MAX_INFERENCE_ERROR = 0.5;
+    const size_t MAX_ITERS = 20;
+    const size_t NUM_POINTS = 100;
 
     vec INPUT_MEANS = {-5,5,8};
     vec INPUT_VARS = {0.2, 0.5, 0.7};
     vec INPUT_WEIGHTS = {0.2, 0.5, 0.3};
-    auto data = generate_gmm(200, INPUT_MEANS, INPUT_VARS, INPUT_WEIGHTS);
+    auto data = generate_gmm(NUM_POINTS, INPUT_MEANS, INPUT_VARS, INPUT_WEIGHTS);
     vec means, vars, weights;
+
     double log_l;
+    em_gmm(data, INPUT_MEANS.size(), MAX_ITERS, means, vars, weights, log_l);
 
-    means = sort(means);
-
-    em_gmm(data, 3, 100, means, vars, weights, log_l);
-
-    vector<pair<double, int>> idx;
+    vector<pair<double, int>> idx(means.size());
     for (size_t i = 0; i < means.size(); ++i)
-        idx.push_back(make_pair(means(i), i));
+        idx[i] = make_pair(means(i), i);
     std::sort(idx.begin(), idx.end(), [](pair<double,int> a, pair<double,int> b) { return a.first < b.first; });
 
-    for (size_t i = 0; i < 3; ++i)
+    for (size_t i = 0; i < INPUT_MEANS.size(); ++i)
     {
         EXPECT_NEAR(means(idx[i].second), INPUT_MEANS(i), MAX_INFERENCE_ERROR);
         EXPECT_NEAR(vars(idx[i].second), INPUT_VARS(i), MAX_INFERENCE_ERROR);
         EXPECT_NEAR(weights(idx[i].second), INPUT_WEIGHTS(i), MAX_INFERENCE_ERROR);
-
     }
 }
+
+
+TEST(GMMTest, Kinect10)
+{
+    vec DATA = "4.9770e+03   4.9770e+03   5.1250e+03   5.2020e+03   5.2020e+03   5.1250e+03   4.9770e+03   5.2020e+03   5.2020e+03   5.2020e+03   5.0500e+03";
+//    vec DATA =  "4.9060e+03        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00   5.2020e+03        0e+00        0e+00";
+//    vec DATA = " 4.5210e+03   4.5810e+03        0e+00   4.6430e+03   4.7060e+03   4.7060e+03   4.7060e+03   4.7060e+03   4.6430e+03   4.7060e+03   4.6430e+03";
+//    vec DATA = "0        0        0        0        0        0        0        0        0        0        0";
+    vec means, vars, weights;
+    double log_l;
+    em_gmm(DATA, 3, 10, means, vars, weights, log_l);
+
+    EXPECT_LE(log_l, DBL_MAX);
+}
+

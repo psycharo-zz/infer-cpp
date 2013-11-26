@@ -1,12 +1,10 @@
 #ifndef KMEANS_H
 #define KMEANS_H
 
-#include <armadillo>
-using namespace arma;
+#include "mathutil.h"
 
-#include <cmath>
+
 #include <cfloat>
-
 
 /**
  * K-means algorithm
