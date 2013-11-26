@@ -9,9 +9,9 @@ using namespace std;
 
 TEST(GMMTest, LogPDF)
 {
-    vec INPUT_MEANS = {-5,5,8};
-    vec INPUT_VARS = {0.2, 0.5, 0.7};
-    vec INPUT_WEIGHTS = {0.2, 0.5, 0.3};
+    const vec INPUT_MEANS = {-5,5,8};
+    const vec INPUT_VARS = {0.2, 0.5, 0.7};
+    const vec INPUT_WEIGHTS = {0.2, 0.5, 0.3};
 
     // log pdf -10:1:10
     const vec EXPECTED_LOG_PDF = {  -64.223657489421726,
@@ -37,8 +37,23 @@ TEST(GMMTest, LogPDF)
                                      -4.801716722227239};
 
     for (int i = 0, data = -10; i < EXPECTED_LOG_PDF.size(); ++i, data += 1)
-        EXPECT_FLOAT_EQ(log_gmm_pdf(data, INPUT_MEANS, INPUT_VARS, INPUT_WEIGHTS), EXPECTED_LOG_PDF[i]);
+        EXPECT_FLOAT_EQ(gmm_log_pdf(data, INPUT_MEANS, INPUT_VARS, INPUT_WEIGHTS), EXPECTED_LOG_PDF[i]);
 }
+
+
+TEST(GMMTest, LogPDFKinect)
+{
+    double X = 4771;
+    const vec MEANS = "4.9060e+03   4.8380e+03        0e+00";
+    const vec VARS = "1.0000e-06   1.0000e-06   1.0000e-06";
+    const vec WEIGHTS = "0.3636   0.4545   0.1818";
+
+    cout << gmm_log_pdf(X, MEANS, VARS, WEIGHTS) << endl;
+
+    cout << infer::norm_pdf(X, MEANS(0), 1e-6) << endl;
+
+}
+
 
 TEST(GMMTest, EM1D)
 {
@@ -70,7 +85,7 @@ TEST(GMMTest, EM1D)
 }
 
 
-TEST(GMMTest, Kinect10)
+TEST(GMMTest, EMKinect)
 {
     vec DATA = "4.9770e+03   4.9770e+03   5.1250e+03   5.2020e+03   5.2020e+03   5.1250e+03   4.9770e+03   5.2020e+03   5.2020e+03   5.2020e+03   5.0500e+03";
 //    vec DATA =  "4.9060e+03        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00   5.2020e+03        0e+00        0e+00";
@@ -82,4 +97,56 @@ TEST(GMMTest, Kinect10)
 
     EXPECT_LE(log_l, DBL_MAX);
 }
+
+
+
+TEST(GMMTest, VB1D)
+{
+    // TODO: separate errors for variance and mean?
+    const double MAX_INFERENCE_ERROR = 0.5;
+    const size_t MAX_ITERS = 40;
+    const size_t NUM_POINTS = 1000;
+
+    vec INPUT_MEANS = {-5,5,8};
+    vec INPUT_VARS = {0.5, 0.5, 1};
+    vec INPUT_WEIGHTS = {0.2, 0.5, 0.3};
+    auto data = generate_gmm(NUM_POINTS, INPUT_MEANS, INPUT_VARS, INPUT_WEIGHTS);
+    vec means, vars, weights;
+
+    double log_l;
+    vb_gmm(data, INPUT_MEANS.size(), MAX_ITERS, means, vars, weights, log_l);
+
+    vector<pair<double, int>> idx(means.size());
+    for (size_t i = 0; i < means.size(); ++i)
+        idx[i] = make_pair(means(i), i);
+    std::sort(idx.begin(), idx.end(), [](pair<double,int> a, pair<double,int> b) { return a.first < b.first; });
+
+    for (size_t i = 0; i < INPUT_MEANS.size(); ++i)
+    {
+        EXPECT_NEAR(means(idx[i].second), INPUT_MEANS(i), MAX_INFERENCE_ERROR);
+        EXPECT_NEAR(vars(idx[i].second), INPUT_VARS(i), MAX_INFERENCE_ERROR);
+        EXPECT_NEAR(weights(idx[i].second), INPUT_WEIGHTS(i), MAX_INFERENCE_ERROR);
+    }
+}
+
+
+TEST(GMMTest, VBKinect)
+{
+    vec DATA = "4.9770e+03   4.9770e+03   5.1250e+03   5.2020e+03   5.2020e+03   5.1250e+03   4.9770e+03   5.2020e+03   5.2020e+03   5.2020e+03   5.0500e+03";
+//    vec DATA =  "4.9060e+03        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00   5.2020e+03        0e+00        0e+00";
+//    vec DATA = " 4.5210e+03   4.5810e+03        0e+00   4.6430e+03   4.7060e+03   4.7060e+03   4.7060e+03   4.7060e+03   4.6430e+03   4.7060e+03   4.6430e+03";
+//    vec DATA = "0        0        0        0        0        0        0        0        0        0        0";
+    vec means, vars, weights;
+    double log_l;
+    auto iters = vb_gmm(DATA, 3, 20, means, vars, weights, log_l);
+
+    cout << iters << endl;
+    cout << log_l << endl;
+    cout << means.t() << endl;
+    cout << vars.t() << endl;
+    cout << weights.t() << endl;
+
+    EXPECT_LE(log_l, DBL_MAX);
+}
+
 

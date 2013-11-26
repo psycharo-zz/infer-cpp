@@ -12,18 +12,20 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 set(INFER_CPP_SOURCES
 src/main.cpp
-src/gmm.cpp)
+src/gmm.cpp
+src/mathutil.cpp)
 
 set(INFER_CPP_HEADERS
 src/gmm.h
-src/kmeans.h)
+src/kmeans.h
+src/mathutil.h)
 
 set(INFER_CPP_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src)
 
 # deps
 find_package(armadillo REQUIRED)
 
-add_library(infer-cpp ${INFER_CPP_SOURCES})
+add_library(infer-cpp ${INFER_CPP_SOURCES} ${INFER_CPP_HEADRS})
 target_link_libraries(infer-cpp armadillo)
 
 # tests

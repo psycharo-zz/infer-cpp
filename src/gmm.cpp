@@ -2,12 +2,13 @@
 
 
 #include "kmeans.h"
+using namespace infer;
 
 #include <vector>
 using namespace std;
 
 
-double log_gmm_pdf(double data, const vec &means, const vec &vars, const vec &weights)
+double gmm_log_pdf(double data, const vec &means, const vec &vars, const vec &weights)
 {
     double prob = 0;
     for (size_t k = 0; k < means.size(); ++k)
@@ -90,7 +91,7 @@ size_t em_gmm(const vec &data, size_t K, size_t max_iters, vec &means, vec &vars
         // evaluating log-likelihood
         double curr_log_l = 0.0;
         for (size_t p = 0; p < N; ++p)
-            curr_log_l += log_gmm_pdf(data(p), means, vars, weights);
+            curr_log_l += gmm_log_pdf(data(p), means, vars, weights);
 
         if (fabs(curr_log_l - log_l) < EPS)
             break;
@@ -99,5 +100,105 @@ size_t em_gmm(const vec &data, size_t K, size_t max_iters, vec &means, vec &vars
 
     return iters;
 }
+
+
+
+
+size_t vb_gmm(const vec &data, size_t num_comps, size_t max_iters, vec &means, vec &vars, vec &weights, double &log_l,
+              double prior_mean_m, double prior_mean_b, double prior_prec_a, double prior_prec_b, double prior_dir_u)
+{
+    const vec data2 = square(data);
+
+    const size_t N = data.size();
+    const size_t K = num_comps;
+
+    // expectations
+    vec exp_mean(K);
+    vec exp_mean2(K);
+    vec exp_prec(K);
+    vec exp_log_prec(K);
+    vec exp_log_weights(K);
+
+    // responsibilities
+    mat resps = zeros(N, K);
+    mat log_resps(N, K);
+
+    // initialising exp_mean using k-means
+    ivec assigns;
+    kmeans(data, K, max_iters, exp_mean, assigns);
+    for (size_t p = 0; p < N; ++p)
+        resps(p, assigns(p)) = 1.0;
+    exp_mean2 = square(exp_mean);
+
+    // mean hyperparameters
+    double prior_mean_mb = prior_mean_m * prior_mean_b;
+    vec mean_mb(K);
+    vec mean_b(K);
+    // precision hyperparameters
+    vec prec_a(K);
+    vec prec_b(K);
+    // mixture weights hyperparameters
+    vec dir_u(K);
+
+    size_t iters = 0;
+    log_l = 0;
+    max_iters = 1;
+    for (iters = 0; iters < max_iters; ++iters)
+    {
+        // updating hyperparams: prec
+        for (size_t k = 0; k < K; ++k)
+        {
+            prec_a(k) = prior_prec_a + 0.5 * sum(resps.col(k));
+            prec_b(k) = prior_prec_b + 0.5 * dot(resps.col(k), data2 - 2 * data * exp_mean(k) + exp_mean2(k));
+        }
+        // updating expectations
+        exp_prec = prec_a / prec_b;
+        exp_log_prec = digamma(prec_a) - log(prec_b);
+
+        // updating hyperparams: mean
+        for (size_t k = 0; k < K; ++k)
+        {
+            mean_mb(k) = prior_mean_mb + exp_prec(k) * dot(data, resps.col(k));
+            mean_b(k) = prior_mean_b + exp_prec(k) * sum(resps.col(k));
+        }
+        // updating expectations
+        exp_mean = mean_mb / mean_b;
+        exp_mean2 = exp_mean + 1.0 / exp_prec;
+
+        // updating hyperparams: assignment
+        for (size_t k = 0; k < K; ++k)
+            dir_u(k) = prior_dir_u + sum(resps.col(k));
+        // updating expectations
+        exp_log_weights = digamma(dir_u) - digamma(sum(dir_u));
+
+        // updating assignment variables
+        for (size_t k = 0; k < K; ++k)
+            log_resps.col(k) = exp_log_weights(k)
+                    + 0.5 * exp_log_prec(k)
+                    - 0.5 * exp_prec(k) * (data2 - 2 * data * exp_mean(k) + exp_mean2(k));
+
+        for (size_t p = 0; p < N; ++p)
+        {
+            resps.row(p) = exp(log_resps.row(p) - max(log_resps.row(p)));
+            resps /= sum(resps.row(p));
+        }
+
+        // TODO: compute LB instead
+        double curr_log_l = 0.0;
+        for (size_t p = 0; p < N; ++p)
+            curr_log_l += gmm_log_pdf(data(p), exp_mean, 1.0 / exp_prec, exp(exp_log_weights));
+        if (fabs(curr_log_l - log_l) < EPS)
+            break;
+        log_l = curr_log_l;
+    }
+
+    means = exp_mean;
+    vars = 1.0 / exp_prec;
+    weights = exp(exp_log_weights);
+
+    return iters;
+}
+
+
 
 
