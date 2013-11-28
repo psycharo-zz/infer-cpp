@@ -11,7 +11,6 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
 set(INFER_CPP_SOURCES
-src/main.cpp
 src/gmm.cpp
 src/mathutil.cpp)
 

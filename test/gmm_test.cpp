@@ -45,13 +45,10 @@ TEST(GMMTest, LogPDFKinect)
 {
     double X = 4771;
     const vec MEANS = "4.9060e+03   4.8380e+03        0e+00";
-    const vec VARS = "1.0000e-06   1.0000e-06   1.0000e-06";
-    const vec WEIGHTS = "0.3636   0.4545   0.1818";
+    const vec VARS = "5.0000e-06   4.0000e-06   9.9999e-06";
+    const vec WEIGHTS = "0.3335   0.3727   0.2551";
 
-    cout << gmm_log_pdf(X, MEANS, VARS, WEIGHTS) << endl;
-
-    cout << infer::norm_pdf(X, MEANS(0), 1e-6) << endl;
-
+    EXPECT_FLOAT_EQ(-5.61124996e+08, gmm_log_pdf(X, MEANS, VARS, WEIGHTS));
 }
 
 
@@ -88,13 +85,9 @@ TEST(GMMTest, EM1D)
 TEST(GMMTest, EMKinect)
 {
     vec DATA = "4.9770e+03   4.9770e+03   5.1250e+03   5.2020e+03   5.2020e+03   5.1250e+03   4.9770e+03   5.2020e+03   5.2020e+03   5.2020e+03   5.0500e+03";
-//    vec DATA =  "4.9060e+03        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00   5.2020e+03        0e+00        0e+00";
-//    vec DATA = " 4.5210e+03   4.5810e+03        0e+00   4.6430e+03   4.7060e+03   4.7060e+03   4.7060e+03   4.7060e+03   4.6430e+03   4.7060e+03   4.6430e+03";
-//    vec DATA = "0        0        0        0        0        0        0        0        0        0        0";
     vec means, vars, weights;
     double log_l;
     em_gmm(DATA, 3, 10, means, vars, weights, log_l);
-
     EXPECT_LE(log_l, DBL_MAX);
 }
 
@@ -133,19 +126,9 @@ TEST(GMMTest, VB1D)
 TEST(GMMTest, VBKinect)
 {
     vec DATA = "4.9770e+03   4.9770e+03   5.1250e+03   5.2020e+03   5.2020e+03   5.1250e+03   4.9770e+03   5.2020e+03   5.2020e+03   5.2020e+03   5.0500e+03";
-//    vec DATA =  "4.9060e+03        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00        0e+00   5.2020e+03        0e+00        0e+00";
-//    vec DATA = " 4.5210e+03   4.5810e+03        0e+00   4.6430e+03   4.7060e+03   4.7060e+03   4.7060e+03   4.7060e+03   4.6430e+03   4.7060e+03   4.6430e+03";
-//    vec DATA = "0        0        0        0        0        0        0        0        0        0        0";
     vec means, vars, weights;
     double log_l;
-    auto iters = vb_gmm(DATA, 3, 20, means, vars, weights, log_l);
-
-    cout << iters << endl;
-    cout << log_l << endl;
-    cout << means.t() << endl;
-    cout << vars.t() << endl;
-    cout << weights.t() << endl;
-
+    vb_gmm(DATA, 3, 20, means, vars, weights, log_l);
     EXPECT_LE(log_l, DBL_MAX);
 }
 

@@ -8,14 +8,12 @@ using namespace infer;
 using namespace std;
 
 
-double gmm_log_pdf(double data, const vec &means, const vec &vars, const vec &weights)
+double gmm_log_pdf(double x, const vec &means, const vec &vars, const vec &weights)
 {
-    double prob = 0;
-    for (size_t k = 0; k < means.size(); ++k)
-        prob += weights(k) * norm_pdf(data, means(k), vars(k));
-    return log(prob);
+    vec logp = -0.5 * square(x - means) / vars - 0.5 * LN_2PI - 0.5 * log(vars) + log(weights);
+    double logp_max = max(logp);
+    return log(sum(exp(logp - logp_max))) + logp_max;
 }
-
 
 vec generate_gmm(size_t N, const vec &mean, const vec &stddev, const vec &weights)
 {
