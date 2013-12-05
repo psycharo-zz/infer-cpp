@@ -5,14 +5,33 @@
 using namespace infer;
 
 #include <vector>
+#include <random>
 using namespace std;
 
 
 double gmm_log_pdf(double x, const vec &means, const vec &vars, const vec &weights)
 {
     vec logp = -0.5 * square(x - means) / vars - 0.5 * LN_2PI - 0.5 * log(vars) + log(weights);
-    double logp_max = max(logp);
+    double logp_max = max(logp); // TODO: does it really matter with lazy expressions
     return log(sum(exp(logp - logp_max))) + logp_max;
+}
+
+
+double gmm_sample(const vec &means, const vec &vars, const vec &weights)
+{
+    static default_random_engine generator;
+    discrete_distribution<size_t> distr(weights.begin(), weights.end());
+    size_t comp = distr(generator);
+    return means(comp) + randn() * vars(comp);
+}
+
+
+uword gmm_classify(double x, const vec &means, const vec &vars, const vec &weights)
+{
+    uword idx;
+    vec logp = -0.5 * square(x - means) / vars - 0.5 * LN_2PI - 0.5 * log(vars) + log(weights);
+    logp.max(idx);
+    return idx;
 }
 
 vec generate_gmm(size_t N, const vec &mean, const vec &stddev, const vec &weights)
@@ -98,7 +117,6 @@ size_t em_gmm(const vec &data, size_t K, size_t max_iters, vec &means, vec &vars
 
     return iters;
 }
-
 
 
 

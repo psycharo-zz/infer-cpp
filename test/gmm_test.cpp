@@ -41,6 +41,24 @@ TEST(GMMTest, LogPDF)
 }
 
 
+TEST(GMMTest, Classify)
+{
+    const vec MEANS = {-5,5,8};
+    const vec VARS = {2, 2, 2};
+    const vec WEIGHTS = {0.2, 0.5, 0.3};
+
+    EXPECT_EQ(gmm_classify(-4, MEANS, VARS, WEIGHTS), 0);
+    EXPECT_EQ(gmm_classify(-3, MEANS, VARS, WEIGHTS), 0);
+
+    EXPECT_EQ(gmm_classify(3, MEANS, VARS, WEIGHTS), 1);
+    EXPECT_EQ(gmm_classify(4, MEANS, VARS, WEIGHTS), 1);
+
+    EXPECT_EQ(gmm_classify(7, MEANS, VARS, WEIGHTS), 2);
+    EXPECT_EQ(gmm_classify(9, MEANS, VARS, WEIGHTS), 2);
+}
+
+
+
 TEST(GMMTest, LogPDFKinect)
 {
     double X = 4771;
@@ -131,5 +149,6 @@ TEST(GMMTest, VBKinect)
     vb_gmm(DATA, 3, 20, means, vars, weights, log_l);
     EXPECT_LE(log_l, DBL_MAX);
 }
+
 
 

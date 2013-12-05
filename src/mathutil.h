@@ -25,6 +25,7 @@ inline double norm_log_pdf(double x, double mean, double var)
     return - 0.5 * sqr(x - mean) / var - 0.5 * log(var) - 0.5 * LN_2PI;
 }
 
+
 /// The digamma function is the derivative of gammaln.
 double digamma(double x);
 

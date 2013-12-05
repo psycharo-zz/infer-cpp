@@ -26,3 +26,5 @@ TEST(MathUtilTest, DiGamma)
     for (size_t i = 0; i < DATA.size(); ++i)
         EXPECT_FLOAT_EQ(EXPECTED(i), RESULT(i));
 }
+
+
