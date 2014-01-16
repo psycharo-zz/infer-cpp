@@ -50,7 +50,6 @@ vec generate_gmm(size_t N, const vec &mean, const vec &stddev, const vec &weight
     return result;
 }
 
-
 size_t em_gmm(const vec &data, size_t K, size_t max_iters, vec &means, vec &vars, vec &weights, double &log_l)
 {
     const size_t N = data.size();
@@ -114,7 +113,6 @@ size_t em_gmm(const vec &data, size_t K, size_t max_iters, vec &means, vec &vars
             break;
         log_l = curr_log_l;
     }
-
     return iters;
 }
 

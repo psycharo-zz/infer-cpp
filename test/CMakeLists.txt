@@ -1,6 +1,6 @@
 # GTest
 # TODO: download this stuff
-add_subdirectory(gtest-1.7.0)
+add_subdirectory(googletest)
 include_directories(${gtest_SOURCE_DIR}/include)
 
 enable_testing()
